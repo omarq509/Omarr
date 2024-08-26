@@ -41,7 +41,7 @@
 </head>
 <body>
     <div class="content">
-        <h1>أدخل معلوماتك او معلوماتكي</h1>
+        <h1>أدخل معلوماتك</h1>
         <input type="text" id="nameInput" placeholder="أدخل اسمك">
         <input type="number" id="ageInput" placeholder="أدخل عمرك">
         <button onclick="submitData()">إرسال المعلومات</button>
@@ -55,7 +55,7 @@
             const infoDisplay = document.getElementById('infoDisplay');
             
             if (name && age) {
-                fetch('YOUR_GOOGLE_SCRIPT_URL', {
+                fetch('https://script.google.com/macros/s/AKfycbwFYEcuA-Sagpmvr4qLOF95teg-7tC3K5Fk4uUIvxIi0mIz_arOmp2huOQZ4hmxYSKz/exec', {
                     method: 'POST',
                     contentType: 'application/json',
                     body: JSON.stringify({ name: name, age: age })
