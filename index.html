@@ -47,7 +47,7 @@
 </head>
 <body>
     <div class="content">
-        <h1>أدخل معلوماتك ل عمر </h1>
+        <h1>أدخل معلوماتك</h1>
         <input type="text" id="nameInput" placeholder="أدخل اسمك">
         <input type="number" id="ageInput" placeholder="أدخل عمرك">
         <button id="submitBtn" onclick="submitData()">إرسال المعلومات</button>
@@ -75,7 +75,7 @@
                 .then(response => response.text())
                 .then(data => {
                     infoDisplay.innerHTML = '<p>تم إرسال البيانات بنجاح!</p>';
-                    let countdown = 16;
+                    let countdown = 10;
                     timerDisplay.innerHTML = `يمكنك الإرسال مرة أخرى بعد ${countdown} ثوانٍ`;
 
                     const interval = setInterval(function() {
