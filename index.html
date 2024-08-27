@@ -37,6 +37,12 @@
             margin-top: 20px;
             font-size: 18px;
         }
+
+        .timer {
+            margin-top: 10px;
+            font-size: 16px;
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -46,6 +52,7 @@
         <input type="number" id="ageInput" placeholder="أدخل عمرك">
         <button id="submitBtn" onclick="submitData()">إرسال المعلومات</button>
         <div class="info" id="infoDisplay"></div>
+        <div class="timer" id="timerDisplay"></div>
     </div>
 
     <script>
@@ -54,6 +61,7 @@
             const age = document.getElementById('ageInput').value;
             const infoDisplay = document.getElementById('infoDisplay');
             const submitBtn = document.getElementById('submitBtn');
+            const timerDisplay = document.getElementById('timerDisplay');
 
             // تعطيل الزر مباشرة بعد الضغط عليه
             submitBtn.disabled = true;
@@ -67,20 +75,30 @@
                 .then(response => response.text())
                 .then(data => {
                     infoDisplay.innerHTML = '<p>تم إرسال البيانات بنجاح!</p>';
-                    setTimeout(function() {
-                        submitBtn.disabled = false;
-                    }, 10000); // إعادة تفعيل الزر بعد 10 ثواني
+                    let countdown = 16;
+                    timerDisplay.innerHTML = `يمكنك الإرسال مرة أخرى بعد ${countdown} ثوانٍ`;
+
+                    const interval = setInterval(function() {
+                        countdown--;
+                        timerDisplay.innerHTML = `يمكنك الإرسال مرة أخرى بعد ${countdown} ثوانٍ`;
+                        if (countdown <= 0) {
+                            clearInterval(interval);
+                            submitBtn.disabled = false;
+                            timerDisplay.innerHTML = '';
+                        }
+                    }, 1000);
                 })
                 .catch(error => {
                     infoDisplay.innerHTML = '<p>حدث خطأ، يرجى المحاولة مرة أخرى.</p>';
                     submitBtn.disabled = false; // إعادة تفعيل الزر في حالة حدوث خطأ
+                    timerDisplay.innerHTML = '';
                 });
             } else {
                 infoDisplay.innerHTML = '<p>يرجى ملء جميع الحقول.</p>';
                 submitBtn.disabled = false; // إعادة تفعيل الزر إذا كانت البيانات غير كاملة
+                timerDisplay.innerHTML = '';
             }
         }
     </script>
 </body>
 </html>
-
