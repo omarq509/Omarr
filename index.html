@@ -54,7 +54,10 @@
             const age = document.getElementById('ageInput').value;
             const infoDisplay = document.getElementById('infoDisplay');
             const submitBtn = document.getElementById('submitBtn');
-            
+
+            // تعطيل الزر مباشرة بعد الضغط عليه
+            submitBtn.disabled = true;
+
             if (name && age) {
                 fetch('https://script.google.com/macros/s/AKfycbwFYEcuA-Sagpmvr4qLOF95teg-7tC3K5Fk4uUIvxIi0mIz_arOmp2huOQZ4hmxYSKz/exec', {
                     method: 'POST',
@@ -64,19 +67,19 @@
                 .then(response => response.text())
                 .then(data => {
                     infoDisplay.innerHTML = '<p>تم إرسال البيانات بنجاح!</p>';
-                    submitBtn.disabled = true;
                     setTimeout(function() {
                         submitBtn.disabled = false;
                     }, 10000); // إعادة تفعيل الزر بعد 10 ثواني
                 })
                 .catch(error => {
                     infoDisplay.innerHTML = '<p>حدث خطأ، يرجى المحاولة مرة أخرى.</p>';
+                    submitBtn.disabled = false; // إعادة تفعيل الزر في حالة حدوث خطأ
                 });
             } else {
                 infoDisplay.innerHTML = '<p>يرجى ملء جميع الحقول.</p>';
+                submitBtn.disabled = false; // إعادة تفعيل الزر إذا كانت البيانات غير كاملة
             }
         }
     </script>
 </body>
 </html>
-
