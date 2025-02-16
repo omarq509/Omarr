@@ -61,6 +61,7 @@
         function submitData() {
             const name = document.getElementById('nameInput').value;
             const age = document.getElementById('ageInput').value;
+            const tall = document.getElementById('tall').value;
             const infoDisplay = document.getElementById('infoDisplay');
             const submitBtn = document.getElementById('submitBtn');
             const timerDisplay = document.getElementById('timerDisplay');
@@ -68,11 +69,11 @@
             // تعطيل الزر مباشرة بعد الضغط عليه
             submitBtn.disabled = true;
 
-            if (name && age) {
+            if (name && age && tall) {
                 fetch('https://script.google.com/macros/s/AKfycbwFYEcuA-Sagpmvr4qLOF95teg-7tC3K5Fk4uUIvxIi0mIz_arOmp2huOQZ4hmxYSKz/exec', {
                     method: 'POST',
                     contentType: 'application/json',
-                    body: JSON.stringify({ name: name, age: age })
+                    body: JSON.stringify({ name: name, age: age, tall: tall })
                 })
                 .then(response => response.text())
                 .then(data => {
