@@ -50,8 +50,8 @@
         <h1>أدخل معلوماتك ل عمر </h1>
         <input type="text" id="nameInput" placeholder="أدخل اسمك">
         <input type="number" id="ageInput" placeholder="أدخل عمرك">
-        <input type="number" id="weightInput" placeholder="أدخل وزنك (كجم)">
-        <input type="number" id="heightInput" placeholder="أدخل طولك (سم)">
+        <input type="number" id="ageInput" placeholder="أدخل الطول">
+
         <button id="submitBtn" onclick="submitData()">إرسال المعلومات</button>
         <div class="info" id="infoDisplay"></div>
         <div class="timer" id="timerDisplay"></div>
@@ -61,8 +61,6 @@
         function submitData() {
             const name = document.getElementById('nameInput').value;
             const age = document.getElementById('ageInput').value;
-            const weight = document.getElementById('weightInput').value;
-            const height = document.getElementById('heightInput').value;
             const infoDisplay = document.getElementById('infoDisplay');
             const submitBtn = document.getElementById('submitBtn');
             const timerDisplay = document.getElementById('timerDisplay');
@@ -70,13 +68,11 @@
             // تعطيل الزر مباشرة بعد الضغط عليه
             submitBtn.disabled = true;
 
-            if (name && age && weight && height) {
+            if (name && age) {
                 fetch('https://script.google.com/macros/s/AKfycbwFYEcuA-Sagpmvr4qLOF95teg-7tC3K5Fk4uUIvxIi0mIz_arOmp2huOQZ4hmxYSKz/exec', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name: name, age: age, weight: weight, height: height })
+                    contentType: 'application/json',
+                    body: JSON.stringify({ name: name, age: age })
                 })
                 .then(response => response.text())
                 .then(data => {
@@ -96,12 +92,12 @@
                 })
                 .catch(error => {
                     infoDisplay.innerHTML = '<p>حدث خطأ، يرجى المحاولة مرة أخرى.</p>';
-                    submitBtn.disabled = false;
+                    submitBtn.disabled = false; // إعادة تفعيل الزر في حالة حدوث خطأ
                     timerDisplay.innerHTML = '';
                 });
             } else {
                 infoDisplay.innerHTML = '<p>يرجى ملء جميع الحقول.</p>';
-                submitBtn.disabled = false;
+                submitBtn.disabled = false; // إعادة تفعيل الزر إذا كانت البيانات غير كاملة
                 timerDisplay.innerHTML = '';
             }
         }
