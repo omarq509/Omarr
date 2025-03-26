@@ -1,46 +1,12 @@
-import os
-import tkinter as tk
-from tkinter import filedialog, messagebox
+import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import date
 import logging
 
-# إعداد سجل الأحداث (Logging)
+# إعداد سجل الأحداث
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# ====================================================
-# الفئة DataFetcher: لجلب بيانات الأسهم من yfinance
-# ====================================================
-class DataFetcher:
-    def __init__(self, symbols, start_date="2000-01-01", end_date=None, interval="1d"):
-        self.symbols = symbols
-        self.start_date = start_date
-        self.end_date = end_date if end_date else date.today().strftime("%Y-%m-%d")
-        self.interval = interval
-
-    def fetch_data(self):
-        """
-        جلب البيانات لجميع الرموز المحددة.
-        """
-        try:
-            logging.info("بدء تحميل البيانات...")
-            data = yf.download(
-                tickers=self.symbols,
-                start=self.start_date,
-                end=self.end_date,
-                interval=self.interval,
-                group_by="ticker",
-                auto_adjust=True,
-                progress=False,
-                threads=True
-            )
-            logging.info("تم تحميل البيانات بنجاح.")
-            return data
-        except Exception as e:
-            logging.error(f"خطأ في جلب البيانات: {e}")
-            return None
 
 # ====================================================
 # الفئة TechnicalAnalyzer: لتحليل بيانات الأسهم واكتشاف اختراق الشموع البيعية
@@ -50,21 +16,12 @@ class TechnicalAnalyzer:
         self.lose_body_percent = lose_body_percent
 
     def detect_sell_breakout(self, df_symbol):
-        """
-        تحليل بيانات رمز واحد لاكتشاف اختراق الشمعة البيعية.
-        
-        المعايير:
-          - الشمعة البيعية: (Close < Open) ونسبة الجسم (|Open - Close|/(High - Low)) >= lose_body_percent.
-          - إذا تحقق الاختراق (Close > validSellHigh) والشمعة الحالية ليست بيعية، يكون breakout True.
-        """
         n = len(df_symbol)
-        # استخدام القيم كمصفوفات لتقليل التكرار عند الحساب
         o = df_symbol['Open'].values
         h = df_symbol['High'].values
         l = df_symbol['Low'].values
         c = df_symbol['Close'].values
 
-        # حساب نسبة الجسم
         body_ratio = np.where(h != l, np.abs(o - c) / (h - l), 0.0)
         valid_sell_candle = (c < o) & (body_ratio >= self.lose_body_percent)
 
@@ -76,7 +33,7 @@ class TechnicalAnalyzer:
             prev_high = valid_sell_high[i - 1]
             if (not np.isnan(prev_high)) and (c[i] > prev_high) and (not valid_sell_candle[i]):
                 breakout[i] = True
-                valid_sell_high[i] = np.nan  # إعادة تعيين القمة بعد الاختراق
+                valid_sell_high[i] = np.nan
             else:
                 breakout[i] = False
                 if valid_sell_candle[i]:
@@ -92,141 +49,54 @@ class TechnicalAnalyzer:
         return df_symbol
 
 # ====================================================
-# الفئة StockAppController: وحدة التحكم التي تربط بين جلب البيانات والتحليل
+# واجهة المستخدم باستخدام Streamlit
 # ====================================================
-class StockAppController:
-    def __init__(self, start_date="2000-01-01", end_date=None):
-        self.start_date = start_date
-        self.end_date = end_date if end_date else date.today().strftime("%Y-%m-%d")
-        self.analyzer = TechnicalAnalyzer(lose_body_percent=0.55)
+st.set_page_config(page_title="تحليل اختراق الشموع البيعية", layout="wide")
+st.title("📊 تطبيق تحليل اختراق الشموع البيعية")
 
-    def run_analysis(self, symbols, interval):
-        # جلب البيانات باستخدام DataFetcher
-        data_fetcher = DataFetcher(symbols, start_date=self.start_date, end_date=self.end_date, interval=interval)
-        data = data_fetcher.fetch_data()
-        if data is None:
-            return "فشل جلب البيانات. يرجى مراجعة السجل."
+st.markdown("""أدخل رموز الأسهم (مثل: AAPL, MSFT) واختر الفاصل الزمني، وسنقوم بتحليل البيانات واكتشاف الاختراقات للشموع البيعية بناءً على النسبة المحددة.""")
 
-        breakout_results = []  # لتخزين (الرمز، سعر الإغلاق)
+symbols_input = st.text_area("🔤 الرموز (افصلها بفاصلة أو مسافة):", value="AAPL MSFT GOOGL")
+interval = st.selectbox("⏱️ اختر الفاصل الزمني:", ["1d", "1wk", "1mo"])
+start_date = st.date_input("📅 تاريخ البداية:", value=pd.to_datetime("2000-01-01"))
+end_date = st.date_input("📅 تاريخ النهاية:", value=date.today())
+
+if st.button("🚀 تنفيذ التحليل"):
+    symbols = [sym.strip().upper() for sym in symbols_input.replace(",", " ").split() if sym.strip()]
+
+    try:
+        st.info("🔄 يتم تحميل البيانات... الرجاء الانتظار")
+        data = yf.download(
+            tickers=symbols,
+            start=start_date,
+            end=end_date,
+            interval=interval,
+            group_by="ticker",
+            auto_adjust=True,
+            progress=False,
+            threads=True
+        )
+        st.success("✅ تم تحميل البيانات بنجاح")
+
+        analyzer = TechnicalAnalyzer(lose_body_percent=0.55)
+        breakout_results = []
+
         for symbol in symbols:
             if symbol in data:
                 df_symbol = data[symbol].reset_index()
-                result_df = self.analyzer.detect_sell_breakout(df_symbol)
+                result_df = analyzer.detect_sell_breakout(df_symbol)
                 last_row = result_df.tail(1)
-                # إذا كان الشرط متحققاً في آخر شمعة
                 if last_row['breakout'].iloc[0]:
-                    close_price = last_row['Close'].iloc[0]
-                    breakout_results.append((symbol, round(close_price, 2)))
+                    breakout_results.append((symbol, round(last_row['Close'].iloc[0], 2)))
             else:
-                logging.warning(f"لم يتم العثور على بيانات للرمز: {symbol}")
+                st.warning(f"⚠️ لم يتم العثور على بيانات للرمز: {symbol}")
 
         if breakout_results:
-            # إعداد جدول النص مفصول بفاصل tab
-            output = "رمز\tسعر الإغلاق\n"
-            for sym, price in breakout_results:
-                output += f"{sym}\t{price}\n"
-            return output
+            st.subheader("📈 النتائج:")
+            result_df = pd.DataFrame(breakout_results, columns=["الرمز", "سعر الإغلاق"])
+            st.dataframe(result_df)
         else:
-            return "لا توجد رموز تحقق شرط الاختراق على آخر شمعة."
+            st.info("ℹ️ لا توجد رموز تحقق شرط الاختراق في آخر شمعة.")
 
-# ====================================================
-# الفئة UIManager: لإدارة واجهة المستخدم باستخدام tkinter مع قوائم سياقية
-# ====================================================
-class UIManager:
-    def __init__(self, controller):
-        self.controller = controller
-        self.app = tk.Tk()
-        self.app.title("تطبيق تحميل وتحليل بيانات الأسهم")
-        self.app.geometry("750x550")
-        self.setup_ui()
-
-    def setup_ui(self):
-        frame = tk.Frame(self.app)
-        frame.pack(pady=20)
-
-        # استخدام Text widget لإدخال الرموز
-        tk.Label(frame, text="أدخل الرموز (افصلها بمسافة أو أسطر):", font=("Arial", 12)).grid(row=0, column=0, padx=5, pady=5)
-        self.symbols_text = tk.Text(frame, height=3, width=50)
-        self.symbols_text.grid(row=0, column=1, padx=5, pady=5)
-        self.symbols_text.insert("1.0", "AAPL MSFT GOOGL")
-
-        # قائمة سياقية لحقل إدخال الرموز
-        self.context_menu = tk.Menu(self.app, tearoff=0)
-        self.context_menu.add_command(label="تحديد الكل", command=self.select_all)
-        self.context_menu.add_command(label="نسخ", command=lambda: self.symbols_text.event_generate("<<Copy>>"))
-        self.context_menu.add_command(label="قص", command=lambda: self.symbols_text.event_generate("<<Cut>>"))
-        self.context_menu.add_command(label="لصق", command=lambda: self.symbols_text.event_generate("<<Paste>>"))
-        self.context_menu.add_command(label="حذف", command=self.delete_all)
-        self.symbols_text.bind("<Button-3>", self.show_context_menu)
-
-        tk.Label(frame, text="اختر الفاصل الزمني:", font=("Arial", 12)).grid(row=1, column=0, padx=5, pady=5)
-        self.interval_var = tk.StringVar(value="1d")
-        interval_options = ["1d", "1wk", "1mo"]
-        tk.OptionMenu(frame, self.interval_var, *interval_options).grid(row=1, column=1, padx=5, pady=5)
-
-        tk.Button(frame, text="تنفيذ العملية", command=self.on_execute, width=20).grid(row=2, column=0, columnspan=2, pady=20)
-
-        # مربع نص لعرض المخرجات
-        self.output_text = tk.Text(self.app, height=15, width=80)
-        self.output_text.pack(pady=10)
-
-        # قائمة سياقية لمربع المخرجات
-        self.output_context_menu = tk.Menu(self.app, tearoff=0)
-        self.output_context_menu.add_command(label="تحديد الكل", command=self.select_all_output)
-        self.output_context_menu.add_command(label="نسخ", command=self.copy_output)
-        self.output_text.bind("<Button-3>", self.show_output_context_menu)
-
-    # ============= دوال القائمة السياقية لحقل إدخال الرموز =============
-    def show_context_menu(self, event):
-        try:
-            self.context_menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            self.context_menu.grab_release()
-
-    def select_all(self):
-        self.symbols_text.tag_add("sel", "1.0", "end")
-
-    def delete_all(self):
-        self.symbols_text.delete("1.0", "end")
-
-    # ============= دوال القائمة السياقية لمربع المخرجات =============
-    def show_output_context_menu(self, event):
-        try:
-            self.output_context_menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            self.output_context_menu.grab_release()
-
-    def select_all_output(self):
-        self.output_text.tag_add("sel", "1.0", "end")
-
-    def copy_output(self):
-        try:
-            selection = self.output_text.get("sel.first", "sel.last")
-            self.app.clipboard_clear()
-            self.app.clipboard_append(selection)
-        except tk.TclError:
-            pass
-
-    # ============= تنفيذ العملية =============
-    def on_execute(self):
-        symbols_input = self.symbols_text.get("1.0", tk.END).strip()
-        if not symbols_input:
-            messagebox.showerror("خطأ", "يرجى إدخال الرموز.")
-            return
-        symbols = [sym.strip() for sym in symbols_input.split() if sym.strip()]
-        interval = self.interval_var.get()
-
-        result = self.controller.run_analysis(symbols, interval)
-        self.output_text.delete("1.0", tk.END)
-        self.output_text.insert(tk.END, result)
-
-    def start(self):
-        self.app.mainloop()
-
-# ====================================================
-# نقطة الدخول الرئيسية للتطبيق
-# ====================================================
-if __name__ == "__main__":
-    controller = StockAppController()
-    ui_manager = UIManager(controller)
-    ui_manager.start()
+    except Exception as e:
+        st.error(f"❌ حدث خطأ أثناء جلب البيانات أو التحليل: {e}")
